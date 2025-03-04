@@ -21,11 +21,18 @@ jobs:
         run: |
           docker pull svftools/teaching-software-verification:latest
           docker pull svftools/teaching-software-verification:latest-arm64
+          docker pull svftools/teaching-software-analysis:latest
+          docker pull svftools/teaching-software-analysis:latest-arm64
 
       - name: Retag and Push to Baidu Cloud
         run: |
           docker tag svftools/teaching-software-verification:latest registry.baidubce.com/svftools/teaching-software-verification:latest
           docker tag svftools/teaching-software-verification:latest-arm64 registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
+          docker tag svftools/teaching-software-analysis:latest registry.baidubce.com/svftools/teaching-software-analysis:latest
+          docker tag svftools/teaching-software-analysis:latest-arm64 registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
+
 
           docker push registry.baidubce.com/svftools/teaching-software-verification:latest
           docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
+          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest
+          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
