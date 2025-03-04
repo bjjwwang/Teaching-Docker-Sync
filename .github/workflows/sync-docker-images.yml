@@ -1,0 +1,31 @@
+name: Sync Docker Images to Baidu Cloud
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 每天 00:00 运行
+  push:
+    branches:
+      - main  
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Login to Baidu Cloud
+        run: echo "${{ secrets.BAIDU_CLOUD_PASSWORD }}" | docker login -u "a2825862df6e444aa9317bb1a66d42e1" --password-stdin registry.baidubce.com
+
+      - name: Pull Images from Docker Hub
+        run: |
+          docker pull svftools/teaching-software-verification:latest
+          docker pull svftools/teaching-software-verification:latest-arm64
+
+      - name: Retag and Push to Baidu Cloud
+        run: |
+          docker tag svftools/teaching-software-verification:latest registry.baidubce.com/svftools/teaching-software-verification:latest
+          docker tag svftools/teaching-software-verification:latest-arm64 registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
+
+          docker push registry.baidubce.com/svftools/teaching-software-verification:latest
+          docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
