@@ -30,9 +30,3 @@ jobs:
           docker tag svftools/teaching-software-verification:latest-arm64 registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
           docker tag svftools/teaching-software-analysis:latest registry.baidubce.com/svftools/teaching-software-analysis:latest
           docker tag svftools/teaching-software-analysis:latest-arm64 registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
-
-
-          docker push registry.baidubce.com/svftools/teaching-software-verification:latest
-          docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
-          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest
-          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
