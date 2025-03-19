@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main  
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   sync:
@@ -24,9 +25,70 @@ jobs:
           docker pull svftools/teaching-software-analysis:latest
           docker pull svftools/teaching-software-analysis:latest-arm64
 
-      - name: Retag and Push to Baidu Cloud
+      - name: Inspect Source Images
+        run: |
+          echo "=== Verification Image Details (Source) ==="
+          for img in \
+            svftools/teaching-software-verification:latest \
+            svftools/teaching-software-verification:latest-arm64 \
+            svftools/teaching-software-analysis:latest \
+            svftools/teaching-software-analysis:latest-arm64; do
+            echo "== $img =="
+            echo "Image ID: $(docker inspect --format='{{.Id}}' $img)"
+            echo "Architecture: $(docker inspect --format='{{.Architecture}}' $img)"
+            echo "OS: $(docker inspect --format='{{.Os}}' $img)"
+            echo "Digest: $(docker inspect --format='{{.RepoDigests}}' $img)"
+            echo ""
+          done
+
+      - name: Retag Images for Baidu Cloud
         run: |
           docker tag svftools/teaching-software-verification:latest registry.baidubce.com/svftools/teaching-software-verification:latest
           docker tag svftools/teaching-software-verification:latest-arm64 registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
           docker tag svftools/teaching-software-analysis:latest registry.baidubce.com/svftools/teaching-software-analysis:latest
           docker tag svftools/teaching-software-analysis:latest-arm64 registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
+
+      - name: Inspect Retagged Images
+        run: |
+          echo "=== Verification Image Details (Retagged) ==="
+          for img in \
+            registry.baidubce.com/svftools/teaching-software-verification:latest \
+            registry.baidubce.com/svftools/teaching-software-verification:latest-arm64 \
+            registry.baidubce.com/svftools/teaching-software-analysis:latest \
+            registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64; do
+            echo "== $img =="
+            echo "Image ID: $(docker inspect --format='{{.Id}}' $img)"
+            echo "Architecture: $(docker inspect --format='{{.Architecture}}' $img)"
+            echo "OS: $(docker inspect --format='{{.Os}}' $img)"
+            echo ""
+          done
+
+      - name: Push Images to Baidu Cloud
+        run: |
+          docker push registry.baidubce.com/svftools/teaching-software-verification:latest
+          docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
+          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest
+          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
+
+      - name: Verify Image Integrity
+        run: |
+          echo "=== Verifying Image Integrity ==="
+          # Compare original vs retagged image IDs - should be identical
+          for src_img in svftools/teaching-software-verification:latest svftools/teaching-software-verification:latest-arm64 svftools/teaching-software-analysis:latest svftools/teaching-software-analysis:latest-arm64; do
+            dst_img="registry.baidubce.com/svftools/$(echo $src_img | cut -d'/' -f2)"
+            src_id=$(docker inspect --format='{{.Id}}' $src_img)
+            dst_id=$(docker inspect --format='{{.Id}}' $dst_img)
+            src_arch=$(docker inspect --format='{{.Architecture}}' $src_img)
+            dst_arch=$(docker inspect --format='{{.Architecture}}' $dst_img)
+            
+            echo "Source: $src_img ($src_id, $src_arch)"
+            echo "Target: $dst_img ($dst_id, $dst_arch)"
+            
+            if [ "$src_id" = "$dst_id" ] && [ "$src_arch" = "$dst_arch" ]; then
+              echo "✅ MATCH: Image IDs and architectures are identical"
+            else
+              echo "❌ MISMATCH: Image properties don't match!"
+              exit 1
+            fi
+            echo ""
+          done
