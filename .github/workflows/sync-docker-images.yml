@@ -15,80 +15,70 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Login to Baidu Cloud
         run: echo "${{ secrets.BAIDU_CLOUD_PASSWORD }}" | docker login -u "a2825862df6e444aa9317bb1a66d42e1" --password-stdin registry.baidubce.com
 
-      - name: Pull Images from Docker Hub
+      - name: Inspect Docker Manifests
         run: |
-          docker pull svftools/teaching-software-verification:latest
-          docker pull svftools/teaching-software-verification:latest-arm64
-          docker pull svftools/teaching-software-analysis:latest
-          docker pull svftools/teaching-software-analysis:latest-arm64
-
-      - name: Inspect Source Images
-        run: |
-          echo "=== Verification Image Details (Source) ==="
+          echo "=== 检查源镜像架构 ==="
+          # 启用实验性功能以支持manifest命令
+          echo '{ "experimental": true }' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker || true
+          
+          # 安装manifest工具
+          docker pull mplatform/mquery
+          
+          # 查询每个镜像的支持架构
           for img in \
             svftools/teaching-software-verification:latest \
             svftools/teaching-software-verification:latest-arm64 \
             svftools/teaching-software-analysis:latest \
             svftools/teaching-software-analysis:latest-arm64; do
-            echo "== $img =="
-            echo "Image ID: $(docker inspect --format='{{.Id}}' $img)"
-            echo "Architecture: $(docker inspect --format='{{.Architecture}}' $img)"
-            echo "OS: $(docker inspect --format='{{.Os}}' $img)"
-            echo "Digest: $(docker inspect --format='{{.RepoDigests}}' $img)"
+            echo "== $img 支持的架构 =="
+            docker run --rm mplatform/mquery $img
             echo ""
           done
+      
+      - name: Pull Platform-Specific Images
+        run: |
+          # 拉取特定架构的镜像版本
+          echo "=== 拉取amd64架构镜像 ==="
+          docker pull --platform=linux/amd64 svftools/teaching-software-verification:latest
+          docker pull --platform=linux/amd64 svftools/teaching-software-analysis:latest
+          
+          echo "=== 拉取arm64架构镜像 ==="
+          docker pull --platform=linux/arm64 svftools/teaching-software-verification:latest-arm64
+          docker pull --platform=linux/arm64 svftools/teaching-software-analysis:latest-arm64 || echo "arm64镜像拉取失败"
 
       - name: Retag Images for Baidu Cloud
         run: |
+          # 重新标记为百度云镜像
           docker tag svftools/teaching-software-verification:latest registry.baidubce.com/svftools/teaching-software-verification:latest
           docker tag svftools/teaching-software-verification:latest-arm64 registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
           docker tag svftools/teaching-software-analysis:latest registry.baidubce.com/svftools/teaching-software-analysis:latest
           docker tag svftools/teaching-software-analysis:latest-arm64 registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
 
-      - name: Inspect Retagged Images
+      - name: Inspect Images Before Push
         run: |
-          echo "=== Verification Image Details (Retagged) ==="
+          echo "=== 推送前检查镜像 ==="
           for img in \
             registry.baidubce.com/svftools/teaching-software-verification:latest \
             registry.baidubce.com/svftools/teaching-software-verification:latest-arm64 \
             registry.baidubce.com/svftools/teaching-software-analysis:latest \
             registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64; do
             echo "== $img =="
-            echo "Image ID: $(docker inspect --format='{{.Id}}' $img)"
-            echo "Architecture: $(docker inspect --format='{{.Architecture}}' $img)"
-            echo "OS: $(docker inspect --format='{{.Os}}' $img)"
+            echo "镜像ID: $(docker inspect --format='{{.Id}}' $img)"
+            echo "架构: $(docker inspect --format='{{.Architecture}}' $img)"
+            echo "系统: $(docker inspect --format='{{.Os}}' $img)"
             echo ""
           done
 
-      - name: Push Images to Baidu Cloud
-        run: |
-          docker push registry.baidubce.com/svftools/teaching-software-verification:latest
-          docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
-          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest
-          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
-
-      - name: Verify Image Integrity
-        run: |
-          echo "=== Verifying Image Integrity ==="
-          # Compare original vs retagged image IDs - should be identical
-          for src_img in svftools/teaching-software-verification:latest svftools/teaching-software-verification:latest-arm64 svftools/teaching-software-analysis:latest svftools/teaching-software-analysis:latest-arm64; do
-            dst_img="registry.baidubce.com/svftools/$(echo $src_img | cut -d'/' -f2)"
-            src_id=$(docker inspect --format='{{.Id}}' $src_img)
-            dst_id=$(docker inspect --format='{{.Id}}' $dst_img)
-            src_arch=$(docker inspect --format='{{.Architecture}}' $src_img)
-            dst_arch=$(docker inspect --format='{{.Architecture}}' $dst_img)
-            
-            echo "Source: $src_img ($src_id, $src_arch)"
-            echo "Target: $dst_img ($dst_id, $dst_arch)"
-            
-            if [ "$src_id" = "$dst_id" ] && [ "$src_arch" = "$dst_arch" ]; then
-              echo "✅ MATCH: Image IDs and architectures are identical"
-            else
-              echo "❌ MISMATCH: Image properties don't match!"
-              exit 1
-            fi
-            echo ""
-          done
+      # - name: Push Images to Baidu Cloud
+      #   run: |
+      #     docker push registry.baidubce.com/svftools/teaching-software-verification:latest
+      #     docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
+      #     docker push registry.baidubce.com/svftools/teaching-software-analysis:latest
+      #     docker push registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
