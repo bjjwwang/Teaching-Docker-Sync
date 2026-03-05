@@ -58,8 +58,8 @@ jobs:
           # 重新标记为百度云镜像
           docker tag svftools/teaching-software-verification:latest registry.baidubce.com/svftools/teaching-software-verification:latest
           docker tag svftools/teaching-software-verification:latest-arm64 registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
-          docker tag svftools/software-analysis-studio:latest registry.baidubce.com/svftools/software-analysis-studio:latest
-          docker tag svftools/software-analysis-studio:latest-arm64 registry.baidubce.com/svftools/software-analysis-studio:latest-arm64
+          docker tag svftools/software-analysis-studio:latest registry.baidubce.com/svftools/teaching-software-analysis:latest
+          docker tag svftools/software-analysis-studio:latest-arm64 registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
 
       - name: Inspect Images Before Push
         run: |
@@ -67,8 +67,8 @@ jobs:
           for img in \
             registry.baidubce.com/svftools/teaching-software-verification:latest \
             registry.baidubce.com/svftools/teaching-software-verification:latest-arm64 \
-            registry.baidubce.com/svftools/software-analysis-studio:latest \
-            registry.baidubce.com/svftools/software-analysis-studio:latest-arm64; do
+            registry.baidubce.com/svftools/teaching-software-analysis:latest \
+            registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64; do
             echo "== $img =="
             echo "镜像ID: $(docker inspect --format='{{.Id}}' $img)"
             echo "架构: $(docker inspect --format='{{.Architecture}}' $img)"
@@ -80,5 +80,5 @@ jobs:
         run: |
           docker push registry.baidubce.com/svftools/teaching-software-verification:latest
           docker push registry.baidubce.com/svftools/teaching-software-verification:latest-arm64
-          docker push registry.baidubce.com/svftools/software-analysis-studio:latest
-          docker push registry.baidubce.com/svftools/software-analysis-studio:latest-arm64
+          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest
+          docker push registry.baidubce.com/svftools/teaching-software-analysis:latest-arm64
